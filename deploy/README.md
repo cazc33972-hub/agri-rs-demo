@@ -145,3 +145,64 @@ A: 静态页是快照。重跑 `python -m src.export_static` 再推一次即可�
 A: 能。`.github/workflows/pages.yml` 里已经带了定时触发（默认每周一），
 改成 `cron: '0 2 * * *'` 就是每天凌晨 2 点重建。
 注意 GEE 那边的影像导出仍需手动或另配服务账号 —— 自动化的只是"拿到数据之后的整条链路"。
+
+---
+
+## 附：受限网络下怎么推代码
+
+如果机器必须经代理才能出网（公司网络、Clash 类工具），`git push` 会遇到两个坑。
+
+### 坑 1：git 不读系统代理设置
+
+Windows 的"系统代理"是 WinINET 的设置，**git 不走它**，会直连并超时。要给 git 单独配：
+
+```bash
+# 只对本仓库生效（推荐，不动全局配置）
+git config --local http.proxy "http://127.0.0.1:7897"
+git config --local https.proxy "http://127.0.0.1:7897"
+```
+
+### 坑 2：SSH 协议穿不过 HTTP 代理
+
+`git@github.com:...` 这种地址用的是 SSH，而 SSH 不是 HTTP，
+**代理配置对它无效**。有两条路：
+
+**方案一：直接用 HTTPS**（最省事）
+
+```bash
+git remote set-url origin https://github.com/<用户名>/<仓库名>.git
+```
+
+首次推送会触发 Git Credential Manager 授权。
+如果它弹的授权页打不开（比如默认浏览器有问题），改用设备码流程：
+
+```bash
+# 只对这次命令生效
+GCM_GITHUB_AUTHMODES=device git push -u origin main
+# 终端/GUI 会给一个形如 XXXX-XXXX 的码，去 https://github.com/login/device 输入
+```
+
+**方案二：给 SSH 配代理隧道**
+
+用仓库里的 `tools/ssh-proxy-socks5.py` 充当 `ProxyCommand`：
+
+```
+# ~/.ssh/config
+Host github.com
+    HostName github.com
+    User git
+    IdentityFile C:/Users/<你>/.ssh/id_ed25519
+    IdentitiesOnly yes
+    StrictHostKeyChecking accept-new
+    ProxyCommand python C:/path/to/ssh-proxy-socks5.py %h %p
+```
+
+> **路径必须用正斜杠。** Git for Windows 用的是自带的 MSYS 版 ssh，
+> 它执行 ProxyCommand 时走 `/bin/sh`，而 sh 把反斜杠当转义符——
+> `C:\Users\...` 会被吃成 `C:Users...` 并报 `not found`。
+> 这个坑很隐蔽：手动跑 `ssh -T git@github.com` 能通（用的是 Windows 自带 OpenSSH），
+> 但 `git fetch` 失败。
+
+怎么判断隧道是否正常：跑 `ssh -T git@github.com`。
+返回 `Permission denied (publickey)` 说明**隧道是通的**（已经连到 GitHub，只是密钥没注册）；
+返回超时或 `ProxyCommand failed` 才是隧道本身有问题。
