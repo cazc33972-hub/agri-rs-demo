@@ -4,12 +4,12 @@
 ## 解决什么问题
 
 SSH 协议不能走 HTTP 代理。如果你的机器必须经代理才能出网（公司网络、Clash 类工具），
-\`git@github.com:...\` 这样的地址会直接超时。这个脚本实现 SOCKS5 CONNECT，
+`git@github.com:...` 这样的地址会直接超时。这个脚本实现 SOCKS5 CONNECT，
 让 ssh 把 TCP 连接"隧道"出去。
 
 ## 为什么不用现成工具
 
-\`ncat\` / \`nc\` / \`connect\` / \`corkscrew\` 都能干这事，但 Windows 默认都不带。
+`ncat` / `nc` / `connect` / `corkscrew` 都能干这事，但 Windows 默认都不带。
 Python 基本人人都有，写一个十行核心逻辑的脚本最省事。
 
 ## 用法
@@ -18,7 +18,7 @@ Python 基本人人都有，写一个十行核心逻辑的脚本最省事。
 
     ssh -o ProxyCommand="python ssh-proxy-socks5.py %h %p" git@github.com
 
-写进 \`~/.ssh/config\` 更省事（注意路径要用**正斜杠**，见下面的坑）：
+写进 `~/.ssh/config` 更省事（注意路径要用**正斜杠**，见下面的坑）：
 
     Host github.com
         HostName github.com
@@ -31,9 +31,9 @@ Python 基本人人都有，写一个十行核心逻辑的脚本最省事。
 ## 踩过的坑
 
 **路径必须用正斜杠。** Git for Windows 用的是自带的 MSYS 版 ssh，它执行 ProxyCommand
-时会走 \`/bin/sh\`，而 sh 把反斜杠当转义符——\`C:\\Users\\...\` 会被吃成 \`C:Users...\`，
-报 \`not found\`。直接调 Windows 自带的 OpenSSH 却没事，所以这个坑很隐蔽：
-手动 \`ssh -T git@github.com\` 能通，\`git fetch\` 却失败。
+时会走 `/bin/sh`，而 sh 把反斜杠当转义符——`C:\\Users\\...` 会被吃成 `C:Users...`，
+报 `not found`。直接调 Windows 自带的 OpenSSH 却没事，所以这个坑很隐蔽：
+手动 `ssh -T git@github.com` 能通，`git fetch` 却失败。
 
 ## 可用环境变量覆盖代理地址
 
