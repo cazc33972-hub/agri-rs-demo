@@ -1,0 +1,9 @@
+# 仓库里统一用 LF；Windows 检出时会自动转成 CRLF，不会产生"整个文件都改了"的假 diff
+* text=auto eol=lf
+
+# 二进制文件不要动
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
+*.whl binary

@@ -1,0 +1,11 @@
+# 一条命令起服务：docker compose -f deploy/docker-compose.yml up -d --build
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: agri-rs-demo:latest
+    container_name: agri-rs
+    ports:
+      - "8080:80"
+    restart: unless-stopped

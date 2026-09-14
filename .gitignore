@@ -1,0 +1,31 @@
+# ============================================================
+# 提交策略
+#   data/raw/  —— 提交。这是输入数据（约 170 KB，含 NASA POWER 气象缓存），
+#                提交后 CI 构建可复现、且不依赖外网，克隆下来就能跑。
+#   其余生成物 —— 不提交，本地或 CI 重跑管线即可得到。
+# ============================================================
+
+# 派生结果（跑 python -m src.pipeline 重新生成）
+data/processed/*
+!data/processed/.gitkeep
+data/interim/*
+!data/interim/.gitkeep
+
+# 构建产物（跑 python -m src.export_static 重新生成）
+dist/
+
+# 环境与缓存（全部放在项目内，不占 C 盘）
+.venv/
+.deps/
+.tmp/
+.pipcache/
+wheels/
+__pycache__/
+*.pyc
+*.log
+.server.pid
+.ipynb_checkpoints/
+
+# 出图产物
+reports/figures/*
+!reports/figures/.gitkeep

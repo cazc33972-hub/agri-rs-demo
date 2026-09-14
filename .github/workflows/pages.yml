@@ -1,0 +1,77 @@
+# GitHub Pages 自动构建与发布。
+#
+# 触发：push 到 main / 手动触发 / 每周一定时重建
+#
+# 首次使用前务必先做一步（否则 deploy 环节会失败）：
+#   仓库 Settings → Pages → Build and deployment → Source 选 "GitHub Actions"
+
+name: Build and deploy demo page
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # 每周一 UTC 02:00 自动重建，让气象数据保持新鲜
+    - cron: '0 2 * * 1'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 准备数据
+        # 正常情况下 data/raw 已经随仓库提交，这一步只是兜底：
+        # 万一时序数据缺失（误删、被 gitignore 掉），就造一份合成数据保证构建不挂。
+        # 注意不加 --force-geojson —— 那会覆盖掉真实的研究区矢量。
+        run: |
+          if [ ! -f data/raw/plot_timeseries.csv ]; then
+            echo "::warning::未找到 data/raw/plot_timeseries.csv，改用合成数据"
+            python tools/make_synthetic_data.py
+          fi
+
+      - name: 跑管线
+        run: python -m src.pipeline
+
+      - name: 导出静态页
+        run: python -m src.export_static --out dist
+
+      - name: 数值自检
+        run: python tools/selfcheck.py
+
+      - name: 渲染自检（发布前先确认页面真能打开）
+        # ubuntu-latest 自带 Chrome；万一没有，脚本会以退出码 3 表示"跳过"，
+        # 这里把 3 当成通过，避免因为环境问题卡住发布。
+        run: python tools/check_static_page.py || [ $? -eq 3 ]
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

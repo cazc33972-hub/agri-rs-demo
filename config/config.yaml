@@ -1,0 +1,60 @@
+# ============================================================
+# 全部可调参数集中在这里，代码里不写魔法数字
+# ============================================================
+
+study_area:
+  geojson: config/study_area.geojson     # 地块矢量，必须有 plot_id 字段
+  gee_asset: null                         # 若用 GEE Asset：'users/xxx/study_area'
+  lat: 36.3015                            # 研究区中心纬度（NASA POWER 拉气象用）
+  lon: 116.1045                           # 研究区中心经度
+  elev_m: 50                              # 海拔，影响大气压与湿度计常数
+
+time:
+  start: "2022-01-01"
+  end: "2024-12-31"
+
+s2:
+  collection: "COPERNICUS/S2_SR_HARMONIZED"
+  cloud_prob_collection: "COPERNICUS/S2_CLOUD_PROBABILITY"
+  cloud_prob_threshold: 40      # s2cloudless 概率阈值，40 比较稳
+  max_cloud_cover: 60           # 场景级预筛，太严会丢时相
+  scale: 10                     # 聚合分辨率（米）
+
+indices: [NDVI, EVI, SAVI, NDRE, NDWI]
+
+timeseries:
+  target_step_days: 5           # 规则网格步长
+  interp_max_gap_days: 30       # 超过这个长度的空洞不外推，留 NaN
+  savgol_window: 7              # 必须为奇数，约等于 35 天
+  savgol_polyorder: 2
+  min_obs_per_year: 8           # 一年内有效观测少于此值则丢弃该 地块-年
+
+phenology:
+  sos_threshold_ratio: 0.2      # 动态阈值：min + ratio*(max-min)
+  eos_threshold_ratio: 0.2
+  min_amplitude: 0.15           # NDVI 振幅低于此值判为非作物/无生长
+
+model:
+  target: yield                 # yield | lai | moisture
+  task: regression              # regression | classification
+  cv_group: year                # year | plot   —— 分组交叉验证的组字段
+  test_years: [2024]            # 留出年份做最终测试（时间外推）
+  rf:
+    n_estimators: 500
+    max_depth: null
+    min_samples_leaf: 2
+
+irrigation:
+  et0_source: "NASA_POWER"      # NASA_POWER | csv
+  et0_csv: null                 # 若用本地气象站数据
+  kc_method: "ndvi"             # ndvi | fao56_stage
+  kc_ndvi_a: 1.457              # Kc = a*NDVI + b  （Er-Raki 型经验式，必须本地标定！）
+  kc_ndvi_b: -0.1725
+  kc_min: 0.15
+  kc_max: 1.20
+  root_zone_depth_mm: 600       # 根区深度 Zr
+  field_capacity: 0.30          # 田间持水量（体积含水率）
+  wilting_point: 0.12           # 凋萎点
+  mad: 0.50                     # 管理允许亏缺 MAD
+  irrigation_efficiency: 0.85   # 灌溉水利用系数
+  forecast_days: 7              # 处方展望天数

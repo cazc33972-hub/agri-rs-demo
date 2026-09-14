@@ -1,0 +1,27 @@
+# 核心依赖。建议 Python 3.11 / 3.12（3.14 上部分科学计算包可能还没有 wheel）
+numpy>=1.26
+pandas>=2.1
+scipy>=1.11
+scikit-learn>=1.4
+pyyaml>=6.0
+requests>=2.31
+joblib>=1.3
+
+# Web demo
+fastapi>=0.110
+uvicorn[standard]>=0.29
+
+# 出图 / 报告
+matplotlib>=3.8
+
+# 可选：矢量与栅格处理（需要 GDAL，装不上就退化为 shapely + json）
+# geopandas>=0.14
+# rasterio>=1.3
+shapely>=2.0
+
+# 可选：XGBoost 通常比 RF 涨 2~5 个点
+# xgboost>=2.0
+
+# 可选：走 GEE Python API 而不是 Code Editor 导出时启用
+# earthengine-api>=0.1.390
+# geemap>=0.30
